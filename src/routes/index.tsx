@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import {
   AlertCircle, CheckCircle2, Clock, FlaskConical, GitBranch, Home, Inbox, LayoutTemplate, Megaphone, Plug, Settings, Sparkles, X, XCircle,
 } from "lucide-react";
-import logo from "@/assets/cheerio-logo.png.asset.json";
+const logo = { url: "/cheerio-logo.png" };
 import { initialTemplates, useCopilotEngine, type Scenario, type TemplateStatus } from "@/components/cheerio/engine";
 import { CopilotPanel } from "@/components/cheerio/CopilotPanel";
 import { AgentView } from "@/components/cheerio/AgentView";
+import { CampaignsPage, FlowsPage, HomePage, InboxPage, IntegrationsPage, SettingsPage } from "@/components/cheerio/Pages";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +27,10 @@ const nav = [
   { l: "Home", i: Home }, { l: "Campaigns", i: Megaphone }, { l: "Templates", i: LayoutTemplate }, { l: "Chatbot Flows", i: GitBranch },
   { l: "Integrations", i: Plug }, { l: "Inbox", i: Inbox }, { l: "Settings", i: Settings },
 ];
+
+const pages: Record<string, ComponentType> = {
+  Home: HomePage, Campaigns: CampaignsPage, "Chatbot Flows": FlowsPage, Integrations: IntegrationsPage, Inbox: InboxPage, Settings: SettingsPage,
+};
 
 const chip: Record<TemplateStatus, { t: string; c: string; I: typeof CheckCircle2 }> = {
   approved: { t: "Approved", c: "bg-success/12 text-success", I: CheckCircle2 },
@@ -50,12 +55,14 @@ function App() {
   const [banner, setBanner] = useState(true);
   const [agent, setAgent] = useState(false);
   const [ctrl, setCtrl] = useState(false);
+  const [page, setPage] = useState("Templates");
   const [pulseKey, setPulseKey] = useState(0);
   const setStatus = (s: TemplateStatus) => setTemplates((ts) => ts.map((t) => (t.name === "Diwali_Offer_v2" ? { ...t, status: s } : t)));
   const e = useCopilotEngine(setStatus);
+  const Page = pages[page];
   const rejected = templates.some((t) => t.status === "rejected");
 
-  const restart = () => { e.fullReset(); setTemplates(initialTemplates); setBanner(true); setAgent(false); setCtrl(false); setPulseKey((k) => k + 1); };
+  const restart = () => { e.fullReset(); setTemplates(initialTemplates); setBanner(true); setAgent(false); setCtrl(false); setPage("Templates"); setPulseKey((k) => k + 1); };
 
   const controls = (
     <div className="fixed bottom-20 left-3 z-[55] lg:bottom-4">
@@ -64,7 +71,7 @@ function App() {
           <p className="text-[11px] font-bold uppercase tracking-wider opacity-70">Demo scenarios</p>
           <div className="mt-1 max-h-[55vh] space-y-0.5 overflow-y-auto">
             {scenarios.map(([k, l]) => (
-              <button key={k} className="block min-h-9 w-full rounded-lg px-2 text-left text-sm hover:bg-proto-foreground/10" onClick={() => { setAgent(false); setTemplates(initialTemplates); e.start(k); setCtrl(false); }}>{l}</button>
+              <button key={k} className="block min-h-9 w-full rounded-lg px-2 text-left text-sm hover:bg-proto-foreground/10" onClick={() => { setAgent(false); setPage("Templates"); setTemplates(initialTemplates); e.start(k); setCtrl(false); }}>{l}</button>
             ))}
           </div>
           <div className="mt-2 grid gap-1 border-t border-proto-foreground/20 pt-2">
@@ -87,8 +94,8 @@ function App() {
         <img src={logo.url} alt="Cheerio AI" className="h-8 w-auto" />
         <nav className="mt-8 space-y-1" aria-label="Main">
           {nav.map(({ l, i: I }) => (
-            <a key={l} href="#" onClick={(ev) => ev.preventDefault()} aria-current={l === "Templates" ? "page" : undefined}
-              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${l === "Templates" ? "bg-tint text-secondary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+            <a key={l} href="#" onClick={(ev) => { ev.preventDefault(); setPage(l); }} aria-current={l === page ? "page" : undefined}
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${l === page ? "bg-tint text-secondary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
               <I className="h-4.5 w-4.5" />{l}
             </a>
           ))}
@@ -103,6 +110,7 @@ function App() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-6">
+        {Page ? <Page /> : (<>
         <div className="flex items-end justify-between gap-3">
           <div><h1 className="text-2xl font-semibold">Templates</h1><p className="text-sm text-muted-foreground">Messages Meta has to approve before you can send them.</p></div>
           <button className="hidden min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground sm:block">New template</button>
@@ -134,12 +142,13 @@ function App() {
             );
           })}
         </ul>
+        </>)}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t bg-card lg:hidden" aria-label="Main">
         {nav.map(({ l, i: I }) => (
-          <a key={l} href="#" onClick={(ev) => ev.preventDefault()} aria-current={l === "Templates" ? "page" : undefined}
-            className={`flex min-h-16 min-w-[72px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium ${l === "Templates" ? "text-primary" : "text-muted-foreground"}`}>
+          <a key={l} href="#" onClick={(ev) => { ev.preventDefault(); setPage(l); }} aria-current={l === page ? "page" : undefined}
+            className={`flex min-h-16 min-w-[72px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium ${l === page ? "text-primary" : "text-muted-foreground"}`}>
             <I className="h-5 w-5" />{l}
           </a>
         ))}
